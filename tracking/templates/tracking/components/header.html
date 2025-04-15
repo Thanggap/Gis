@@ -1,0 +1,35 @@
+{% load static %}
+
+<header id="header" class="header d-flex align-items-center fixed-top">
+  <div class="container-fluid container-xl position-relative d-flex align-items-center">
+    <a href="{% url 'home' %}" class="logo d-flex align-items-center me-auto">
+      <img src="{% static 'tracking/img/logo.png' %}" alt="" />
+      <h1 class="sitename">Realtime GIS</h1>
+    </a>
+
+    <nav id="navmenu" class="navmenu">
+      <ul>
+        <li>
+          <a href="{% url 'map' %}" class="active">Bản đồ</a>
+        </li>
+
+        {% if user.is_authenticated %}
+          <li>
+            <a href="{% url 'profile' %}">Xin chào, {{ user.username }}</a>
+          </li>
+          <li>
+            <a href="{% url 'logout' %}">Đăng xuất</a>
+          </li>
+        {% else %}
+          <li>
+            <a href="{% url 'login' %}">Đăng nhập</a>
+          </li>
+          <li>
+            <a href="{% url 'register' %}">Đăng ký</a>
+          </li>
+        {% endif %}
+      </ul>
+      <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+    </nav>
+  </div>
+</header>

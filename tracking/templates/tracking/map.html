@@ -1,0 +1,137 @@
+{% extends 'tracking/master.html' %}
+{% load static %}
+
+{% block title %}
+  Bản đồ theo dõi vị trí
+{% endblock %}
+
+{% block content %}
+  <section id="map" class="section" style="padding-top: 100px;">
+    <div class="container">
+      <h3 class="text-center mb-4">Vị trí người dùng (Realtime)</h3>
+
+      <!-- THANH TÌM KIẾM đưa xuống dưới tiêu đề -->
+      <div class="row mb-4 justify-content-center">
+        <div class="col-md-8">
+          <div class="input-group">
+            <input type="text" id="searchUser" class="form-control" placeholder="Nhập tên người dùng cần tìm" />
+            <button class="btn btn-outline-primary" id="btnSearch">Tìm</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="mapid" style="height: 600px; border-radius: 10px;"></div>
+    </div>
+  </section>
+  
+  <!-- Leaflet CSS + JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- SCRIPT giữ nguyên như bạn đã viết -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const map = L.map('mapid').setView([10.762622, 106.660172], 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      fetch('/api/get_all_locations/')
+        .then((response) => {
+          if (!response.ok) throw new Error('Không thể lấy dữ liệu');
+          return response.json();
+        })
+        .then((data) => {
+          data.forEach((loc) => {
+            const marker = L.marker([loc.latitude, loc.longitude]).addTo(map);
+            marker.bindPopup(`<b>${loc.user}</b><br>${loc.timestamp}`);
+          });
+        })
+        .catch((err) => {
+          console.error(err);
+          alert('Lỗi khi lấy dữ liệu bản đồ.');
+        });
+
+      document.getElementById('btnSearch').addEventListener('click', function () {
+        const username = document.getElementById('searchUser').value.trim();
+        if (!username) {
+          alert('Vui lòng nhập tên người dùng.');
+          return;
+        }
+
+        fetch(`/api/get_user_location/${username}/`)
+          .then((response) => {
+            if (!response.ok) throw new Error('Không tìm thấy người dùng hoặc chưa có vị trí.');
+            return response.json();
+          })
+          .then((loc) => {
+            const { latitude, longitude, timestamp } = loc;
+
+            const marker = L.marker([latitude, longitude], {
+              icon: L.icon({
+                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+                iconSize: [30, 48],
+                iconAnchor: [15, 48],
+                popupAnchor: [0, -40]
+              })
+            }).addTo(map);
+
+            marker.bindPopup(`<b>${username}</b><br>${timestamp}`).openPopup();
+            map.setView([latitude, longitude], 16);
+          })
+          .catch((error) => {
+            alert(error.message);
+          });
+      });
+
+      updateUserLocation();
+      setInterval(updateUserLocation, 10000);
+    });
+
+    function updateUserLocation() {
+      if (!navigator.geolocation) {
+        alert('Trình duyệt của bạn không hỗ trợ định vị.');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+
+          fetch('/api/update_location/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({ latitude, longitude })
+          })
+            .then((response) => {
+              if (!response.ok) throw new Error('Không thể cập nhật vị trí.');
+              console.log('Đã gửi vị trí:', latitude, longitude);
+            })
+            .catch((err) => {
+              console.error('Lỗi khi gửi vị trí:', err);
+            });
+        },
+        (error) => {
+          console.error('Lỗi lấy vị trí:', error);
+        }
+      );
+    }
+
+    function getCSRFToken() {
+      const name = 'csrftoken';
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.startsWith(name + '=')) {
+          return decodeURIComponent(cookie.substring(name.length + 1));
+        }
+      }
+      return '';
+    }
+  </script>
+{% endblock %}

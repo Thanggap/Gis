@@ -1,0 +1,33 @@
+{% extends 'tracking/master.html' %}
+{% load static %}
+
+{% block title %}Cập nhật thông tin{% endblock %}
+
+{% block content %}
+<section class="section" style="padding-top: 100px;">
+  <div class="container">
+    <h3 class="text-center mb-4">Cập nhật thông tin cá nhân</h3>
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="card shadow-sm rounded-4 border-0 bg-light p-4">
+          <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="id_username" class="form-label">Tên đăng nhập</label>
+              {{ form.username }}
+            </div>
+            <div class="mb-3">
+              <label for="id_email" class="form-label">Email</label>
+              {{ form.email }}
+            </div>
+            <div class="text-center">
+              <button type="submit" class="btn btn-success">Cập nhật</button>
+              <a href="{% url 'profile' %}" class="btn btn-secondary ms-2">Hủy</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
